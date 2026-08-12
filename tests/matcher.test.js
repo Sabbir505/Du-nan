@@ -50,6 +50,27 @@ test('suffixed factory rows consumed via suffix rule are not flagged as missing'
   assert.strictEqual(r.needsReview.length, 0, 'suffixed duplicates are consumed');
 });
 
+test('factoryRoster includes every factory row with recruiter from company side', () => {
+  const fac = [f('张三','质量科',280), f('王五','物流科',100), f('黄亚丽1','质量科',30)];
+  const r = matchByName(fac, [c('张三','杨树海'), c('黄亚丽','吴梦')], mappings);
+
+  // All 3 factory rows present
+  assert.strictEqual(r.factoryRoster.length, 3);
+
+  const zhang = r.factoryRoster.find(x => String(x.name).trim() === '张三');
+  assert.deepStrictEqual(zhang.recruiters, ['杨树海']);
+  assert.strictEqual(zhang.matched, true);
+
+  const wang = r.factoryRoster.find(x => String(x.name).trim() === '王五');
+  assert.deepStrictEqual(wang.recruiters, []);
+  assert.strictEqual(wang.matched, false);
+
+  // Suffix match: 黄亚丽1 gets the recruiter of plain 黄亚丽
+  const huang = r.factoryRoster.find(x => String(x.name).trim() === '黄亚丽1');
+  assert.deepStrictEqual(huang.recruiters, ['吴梦']);
+  assert.strictEqual(huang.matched, true);
+});
+
 test('suffix rule: plain name matches suffixed factory rows and flags duplicate', () => {
   const fac = [f('黄亚丽','质量科',30), f('黄亚丽1','质量科',30), f('黄亚丽2','生产科',30)];
   const r = matchByName(fac, [c('黄亚丽','吴梦')], mappings);

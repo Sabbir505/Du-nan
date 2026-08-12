@@ -22,6 +22,37 @@
     });
   }
 
+  // Do two names relate by the suffix rule? (a == b, a == b+digits, or b == a+digits)
+  function namesRelate(a, b) {
+    if (a === b) return true;
+    if (a.length > b.length && a.startsWith(b) && /^\d+$/.test(a.slice(b.length))) return true;
+    if (b.length > a.length && b.startsWith(a) && /^\d+$/.test(b.slice(a.length))) return true;
+    return false;
+  }
+
+  // Build the full factory roster: every factory row, plus the recruiter(s)
+  // from the company sheet that match it (suffix rule applied both ways).
+  // `consumed` is the set of factory rows that were matched in matchByName.
+  function buildFactoryRoster(factoryRows, companyPersonRows, mappings, consumed) {
+    const roster = [];
+    const facNameKey = mappings.factory.name;
+    const coNameKey  = mappings.company.name;
+    const coRecKey   = mappings.company.recruiter;
+    for (const fr of factoryRows) {
+      const fn = norm(fr[facNameKey]);
+      if (!fn) continue;
+      const recruiters = [];
+      for (const co of companyPersonRows) {
+        const cn = norm(co[coNameKey]);
+        if (!cn || !namesRelate(fn, cn)) continue;
+        const rec = co[coRecKey] == null ? '' : String(co[coRecKey]).trim();
+        if (rec && !recruiters.includes(rec)) recruiters.push(rec);
+      }
+      roster.push({ row: fr, name: fr[facNameKey], recruiters, matched: consumed.has(fr) });
+    }
+    return roster;
+  }
+
   // Track which factory rows were consumed by a match so leftover factory rows
   // can be reported as missing from the company side.
   function matchByName(factoryRows, companyPersonRows, mappings) {
@@ -68,12 +99,13 @@
       });
     }
 
-    return { matched, needsReview };
+    const factoryRoster = buildFactoryRoster(factoryRows, companyPersonRows, mappings, consumed);
+    return { matched, needsReview, factoryRoster };
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { matchByName, norm, factoryMatches };
+    module.exports = { matchByName, norm, factoryMatches, buildFactoryRoster, namesRelate };
   } else {
-    window.HrMatcher = { matchByName, norm, factoryMatches };
+    window.HrMatcher = { matchByName, norm, factoryMatches, buildFactoryRoster, namesRelate };
   }
 })();

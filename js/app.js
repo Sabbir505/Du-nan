@@ -36,9 +36,12 @@
       fSearchPh: '姓名…',
       fAll: '全部',
       hMatched: '已匹配',
+      hRoster: '工厂全部名单',
+      hRosterHint: '工厂表中的全部人员，招聘人一列由公司表按姓名匹配填入。',
       hMissing: '缺失名单',
       hMissingHint: '以下姓名只存在于其中一份文件中 —— 请核对并补全。',
       hSubtotals: '招聘人小计',
+      btnDl: '下载 Excel',
       themeLight: '浅色',
       themeDark: '深色',
       thName: '姓名',
@@ -54,6 +57,7 @@
       thSubtotal: '小计金额',
       thMissingFrom: '缺失于',
       statusMatched: '已匹配',
+      statusUnmatched: '未匹配',
       statusDuplicate: '重复 — 待处理',
       badgeMatched: '已匹配',
       badgeDuplicate: '重复 — 待处理',
@@ -62,6 +66,7 @@
       missingFromFactory: '工厂表',
       missingFromCompany: '公司表',
       emptyMatched: '当前筛选条件下无匹配结果',
+      emptyRoster: '工厂表为空',
       emptyReview: '无缺失项 —— 两份文件名单一致',
       emptySubtotals: '未找到招聘人小计',
       statTotalPeople: '总人数',
@@ -110,9 +115,12 @@
       fSearchPh: 'Name…',
       fAll: 'All',
       hMatched: 'Matched',
+      hRoster: 'Factory Roster',
+      hRosterHint: 'Everyone in the factory sheet, with the recruiter column filled by matching names from the company sheet.',
       hMissing: 'Missing Names',
       hMissingHint: 'These names appear in only one of the two files — please verify and complete.',
       hSubtotals: 'Recruiter Subtotals',
+      btnDl: 'Download Excel',
       themeLight: 'Light',
       themeDark: 'Dark',
       thName: 'Name',
@@ -128,6 +136,7 @@
       thSubtotal: 'Subtotal Amount',
       thMissingFrom: 'Missing from',
       statusMatched: 'Matched',
+      statusUnmatched: 'Unmatched',
       statusDuplicate: 'Duplicate — review',
       badgeMatched: 'Matched',
       badgeDuplicate: 'Duplicate — review',
@@ -136,6 +145,7 @@
       missingFromFactory: 'Factory sheet',
       missingFromCompany: 'Company sheet',
       emptyMatched: 'No matches for the current filters',
+      emptyRoster: 'Factory sheet is empty',
       emptyReview: 'Nothing missing — both lists align',
       emptySubtotals: 'No recruiter subtotals found',
       statTotalPeople: 'Total people',
@@ -378,7 +388,7 @@
       name: cm.name, recruiter: cm.recruiter
     });
 
-    const { matched, needsReview } = HrMatcher.matchByName(f.rows, personRows, {
+    const { matched, needsReview, factoryRoster } = HrMatcher.matchByName(f.rows, personRows, {
       factory: { name: fm.name, dept: fm.dept, position: fm.position, hours: fm.hours, bonus: fm.bonus },
       company: { name: cm.name, recruiter: cm.recruiter, position: cm.position, hours: cm.hours }
     });
@@ -389,7 +399,7 @@
       amount: pickSubtotalAmount(r)
     }));
 
-    state.results = { matched, needsReview, subtotals, summary };
+    state.results = { matched, needsReview, subtotals, summary, factoryRoster };
     renderResults();
     $('#results').hidden = false;
     $('#results').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -431,6 +441,7 @@
 
     populateFilters();
     renderMatched();
+    renderRoster();
     renderReview();
     renderSubtotals();
   }
@@ -516,6 +527,28 @@
     return fname ? fname.replace(/\.[^.]+$/, '') : '';
   }
 
+  function renderRoster() {
+    const fm = state.factory.mappings;
+    const rows = state.results.factoryRoster.map((item) => {
+      const fr = item.row;
+      const badge = item.matched
+        ? `<span class="badge ok">${escapeHtml(t('statusMatched'))}</span>`
+        : `<span class="badge bad">${escapeHtml(t('statusUnmatched'))}</span>`;
+      return `<tr>
+        <td>${escapeHtml(item.name)}</td>
+        <td>${escapeHtml(item.recruiters.join(' / '))}</td>
+        <td>${escapeHtml(factoryNameFor(fr))}</td>
+        <td>${escapeHtml(fm.dept ? fr[fm.dept] : '')}</td>
+        <td>${escapeHtml(fm.position ? fr[fm.position] : '')}</td>
+        <td class="num">${escapeHtml(fm.hours ? fr[fm.hours] : '')}</td>
+        <td class="num">${escapeHtml(fm.bonus ? fr[fm.bonus] : '')}</td>
+        <td>${badge}</td>
+      </tr>`;
+    });
+    $('#table-roster tbody').innerHTML =
+      rows.join('') || `<tr><td colspan="8" class="empty">${escapeHtml(t('emptyRoster'))}</td></tr>`;
+  }
+
   function renderReview() {
     const rows = state.results.needsReview.map((n) => {
       // side: 'factory' = name exists in company sheet but not in factory sheet;
@@ -568,25 +601,51 @@
   });
 
   // ---------------- export ----------------
-  $('#btn-export').addEventListener('click', () => {
-    const { matched, needsReview, subtotals, summary } = state.results;
-    const bytes = HrExporter.buildWorkbookBytes({
-      matched, needsReview, subtotals, summary,
-      mappings: { factory: state.factory.mappings },
-      factoryNameFallback: state.factory.file ? state.factory.file.name.replace(/\.[^.]+$/, '') : '',
-      lang
-    });
+  function triggerDownload(bytes, filename) {
     const blob = new Blob([bytes], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = HrExporter.getExportFilename();
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  function factoryNameFallback() {
+    return state.factory.file ? state.factory.file.name.replace(/\.[^.]+$/, '') : '';
+  }
+
+  $('#btn-export').addEventListener('click', () => {
+    const { matched, needsReview, subtotals, summary } = state.results;
+    const bytes = HrExporter.buildWorkbookBytes({
+      matched, needsReview, subtotals, summary,
+      mappings: { factory: state.factory.mappings },
+      factoryNameFallback: factoryNameFallback(),
+      lang
+    });
+    triggerDownload(bytes, HrExporter.getExportFilename());
+  });
+
+  // Per-table downloads: each table gets its own single-sheet Excel file.
+  function sheetName(key) { return HrExporter.hdr(lang, key); }
+
+  const downloaders = [
+    { btn: 'btn-dl-matched', rows: () => HrExporter.matchedToRows(state.results.matched, { factory: state.factory.mappings }, lang, factoryNameFallback()), name: () => sheetName('sheetMatched'), file: 'matched' },
+    { btn: 'btn-dl-roster', rows: () => HrExporter.rosterToRows(state.results.factoryRoster, { factory: state.factory.mappings }, lang, factoryNameFallback()), name: () => sheetName('sheetRoster'), file: 'roster' },
+    { btn: 'btn-dl-review', rows: () => HrExporter.needsReviewToRows(state.results.needsReview, lang), name: () => sheetName('sheetReview'), file: 'missing' },
+    { btn: 'btn-dl-subtotals', rows: () => HrExporter.subtotalsToRows(state.results.subtotals, lang), name: () => sheetName('sheetSubtotals'), file: 'subtotals' }
+  ];
+
+  downloaders.forEach((d) => {
+    $('#' + d.btn).addEventListener('click', () => {
+      const bytes = HrExporter.buildSheetBytes(d.rows(), d.name());
+      const base = HrExporter.getExportFilename().replace(/\.xlsx$/, '');
+      triggerDownload(bytes, `${base}-${d.file}.xlsx`);
+    });
   });
 
   // ---------------- boot ----------------

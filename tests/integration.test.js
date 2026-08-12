@@ -69,7 +69,7 @@ test('full pipeline against real samples produces valid workbook', { skip: !samp
   assert.strictEqual(subtotalRows.length, 7, 'expected 7 subtotal rows');
 
   // 5) Match
-  const { matched, needsReview } = matchByName(fac.rows, personRows, {
+  const { matched, needsReview, factoryRoster } = matchByName(fac.rows, personRows, {
     factory: factoryMapping,
     company: companyMapping
   });
@@ -102,6 +102,16 @@ test('full pipeline against real samples produces valid workbook', { skip: !samp
   const dan = needsReview.find(n => String(n.name).trim() === '单丹丹');
   assert.ok(dan, '单丹丹 should be in Needs Review');
   assert.strictEqual(dan.recruiter, '杨树海');
+
+  // Factory roster: every factory row present, with recruiters filled from
+  // the company sheet (and blank for factory-only people).
+  assert.strictEqual(factoryRoster.length, 70, 'roster covers all factory rows');
+  const liu = factoryRoster.find(x => String(x.name).trim() === '刘英博');
+  assert.deepStrictEqual(liu.recruiters, ['方经理']);
+  assert.strictEqual(liu.matched, true);
+  const liuChong = factoryRoster.find(x => String(x.name).trim() === '刘崇阳');
+  assert.deepStrictEqual(liuChong.recruiters, []);
+  assert.strictEqual(liuChong.matched, false);
 
   // 6) Build summary by recruiter
   const byRec = new Map();

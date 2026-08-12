@@ -24,20 +24,20 @@
   // (Chinese is the tool's primary language).
   const HDR = {
     zh: {
-      sheetMatched: '已匹配', sheetReview: '缺失名单', sheetSubtotals: '招聘人小计', sheetSummary: '汇总',
+      sheetMatched: '已匹配', sheetRoster: '工厂全部名单', sheetReview: '缺失名单', sheetSubtotals: '招聘人小计', sheetSummary: '汇总',
       name: '姓名', recruiter: '招聘人', factory: '工厂', dept: '四级部门', position: '岗位',
       hoursFactory: '计薪天数/小时(工厂)', bonus: '绩效奖金', status: '状态',
       reason: '原因', missingFrom: '缺失于', subtotal: '小计金额', people: '人数', totalHours: '工时合计',
-      statusMatched: '已匹配', statusDuplicate: '重复 — 待处理',
+      statusMatched: '已匹配', statusDuplicate: '重复 — 待处理', statusUnmatched: '未匹配',
       reasonNotFound: '工厂表中未找到', reasonNotFoundCompany: '公司表中未找到',
       missingFactorySide: '工厂表', missingCompanySide: '公司表'
     },
     en: {
-      sheetMatched: 'Matched', sheetReview: 'Missing Names', sheetSubtotals: 'Subtotals', sheetSummary: 'Summary',
+      sheetMatched: 'Matched', sheetRoster: 'Factory Roster', sheetReview: 'Missing Names', sheetSubtotals: 'Subtotals', sheetSummary: 'Summary',
       name: 'Name', recruiter: 'Recruiter', factory: 'Factory', dept: 'Department', position: 'Position',
       hoursFactory: 'Billable days/hours (factory)', bonus: 'Bonus', status: 'Status',
       reason: 'Reason', missingFrom: 'Missing from', subtotal: 'Subtotal Amount', people: 'People', totalHours: 'Total Hours',
-      statusMatched: 'Matched', statusDuplicate: 'Duplicate — review',
+      statusMatched: 'Matched', statusDuplicate: 'Duplicate — review', statusUnmatched: 'Unmatched',
       reasonNotFound: 'Not found in factory sheet', reasonNotFoundCompany: 'Not found in company sheet',
       missingFactorySide: 'Factory sheet', missingCompanySide: 'Company sheet'
     }
@@ -73,6 +73,38 @@
       }
     }
     return rows;
+  }
+
+  // factoryRoster items: { row, name, recruiters: [], matched }
+  function rosterToRows(factoryRoster, mappings, lang, factoryNameFallback) {
+    const { factoryName, dept, position, hours, bonus } = mappings.factory;
+    return factoryRoster.map((item) => {
+      const fr = item.row;
+      let fac = '';
+      if (factoryName && fr[factoryName] != null && String(fr[factoryName]).trim()) {
+        fac = String(fr[factoryName]).trim();
+      } else if (factoryNameFallback) {
+        fac = factoryNameFallback;
+      }
+      return {
+        [hdr(lang, 'name')]: cell(item.name),
+        [hdr(lang, 'recruiter')]: cell(item.recruiters.join(' / ')),
+        [hdr(lang, 'factory')]: cell(fac),
+        [hdr(lang, 'dept')]: cell(dept ? fr[dept] : ''),
+        [hdr(lang, 'position')]: cell(position ? fr[position] : ''),
+        [hdr(lang, 'hoursFactory')]: cell(hours ? fr[hours] : ''),
+        [hdr(lang, 'bonus')]: cell(bonus ? fr[bonus] : ''),
+        [hdr(lang, 'status')]: item.matched ? hdr(lang, 'statusMatched') : hdr(lang, 'statusUnmatched')
+      };
+    });
+  }
+
+  // Generic single-sheet workbook builder — used for per-table downloads.
+  function buildSheetBytes(rows, sheetName) {
+    const wb = XLSXLib.utils.book_new();
+    XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(rows), sheetName);
+    const out = XLSXLib.write(wb, { bookType: 'xlsx', type: 'array' });
+    return new Uint8Array(out);
   }
 
   function needsReviewToRows(needsReview, lang) {
@@ -113,8 +145,16 @@
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { buildWorkbookBytes, getExportFilename };
+    module.exports = {
+      buildWorkbookBytes, getExportFilename, buildSheetBytes,
+      matchedToRows, needsReviewToRows, subtotalsToRows, summaryToRows, rosterToRows,
+      hdr
+    };
   } else {
-    window.HrExporter = { buildWorkbookBytes, getExportFilename };
+    window.HrExporter = {
+      buildWorkbookBytes, getExportFilename, buildSheetBytes,
+      matchedToRows, needsReviewToRows, subtotalsToRows, summaryToRows, rosterToRows,
+      hdr
+    };
   }
 })();
