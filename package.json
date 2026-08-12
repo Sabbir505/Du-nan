@@ -1,0 +1,9 @@
+{
+  "name": "hr-hours-matching-tool",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local browser tool for matching factory attendance with company income spreadsheets.",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  }
+}
