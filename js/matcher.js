@@ -22,6 +22,8 @@
     });
   }
 
+  // Track which factory rows were consumed by a match so leftover factory rows
+  // can be reported as missing from the company side.
   function matchByName(factoryRows, companyPersonRows, mappings) {
     const matched = [];
     const needsReview = [];
@@ -29,13 +31,20 @@
     const coNameKey  = mappings.company.name;
     const coRecKey   = mappings.company.recruiter;
 
+    const consumed = new Set();
+
     for (const co of companyPersonRows) {
       const name = co[coNameKey];
       const recruiter = co[coRecKey] == null ? '' : String(co[coRecKey]).trim();
       const facs = factoryMatches(name, factoryRows, facNameKey);
       if (facs.length === 0) {
-        needsReview.push({ name, recruiter, reason: 'Not found in factory sheet' });
+        needsReview.push({
+          name, recruiter,
+          reason: 'Not found in factory sheet',
+          side: 'factory' // the name exists in the company sheet but not in the factory sheet
+        });
       } else {
+        facs.forEach((f) => consumed.add(f));
         matched.push({
           name,
           recruiter,
@@ -45,6 +54,20 @@
         });
       }
     }
+
+    // Every factory row that no company name matched is missing from our side.
+    for (const fr of factoryRows) {
+      if (consumed.has(fr)) continue;
+      const fn = norm(fr[facNameKey]);
+      if (!fn) continue;
+      needsReview.push({
+        name: fn,
+        recruiter: '',
+        reason: 'Not found in company sheet',
+        side: 'company' // the name exists in the factory sheet but not in the company sheet
+      });
+    }
+
     return { matched, needsReview };
   }
 

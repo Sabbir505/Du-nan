@@ -18,11 +18,36 @@ test('exact single match', () => {
   assert.strictEqual(r.needsReview.length, 0);
 });
 
-test('no match goes to needsReview', () => {
+test('no match goes to needsReview with the correct side', () => {
   const r = matchByName([f('张三','质量科',280)], [c('李四','吴梦')], mappings);
   assert.strictEqual(r.matched.length, 0);
+  assert.strictEqual(r.needsReview.length, 2);
+  const li = r.needsReview.find(n => String(n.name).trim() === '李四');
+  assert.strictEqual(li.reason, 'Not found in factory sheet');
+  assert.strictEqual(li.side, 'factory');
+  const zhang = r.needsReview.find(n => String(n.name).trim() === '张三');
+  assert.strictEqual(zhang.reason, 'Not found in company sheet');
+  assert.strictEqual(zhang.side, 'company');
+});
+
+test('factory names not in company sheet are flagged as missing from company side', () => {
+  const r = matchByName(
+    [f('张三','质量科',280), f('王五','物流科',100)],
+    [c('张三','杨树海')],
+    mappings
+  );
+  assert.strictEqual(r.matched.length, 1);
   assert.strictEqual(r.needsReview.length, 1);
-  assert.strictEqual(r.needsReview[0].reason, 'Not found in factory sheet');
+  assert.strictEqual(r.needsReview[0].name, '王五');
+  assert.strictEqual(r.needsReview[0].side, 'company');
+  assert.strictEqual(r.needsReview[0].recruiter, '');
+});
+
+test('suffixed factory rows consumed via suffix rule are not flagged as missing', () => {
+  const fac = [f('黄亚丽1','质量科',30), f('黄亚丽2','生产科',30)];
+  const r = matchByName(fac, [c('黄亚丽','吴梦')], mappings);
+  assert.strictEqual(r.matched.length, 1);
+  assert.strictEqual(r.needsReview.length, 0, 'suffixed duplicates are consumed');
 });
 
 test('suffix rule: plain name matches suffixed factory rows and flags duplicate', () => {
@@ -57,5 +82,9 @@ test('suffix rule only for trailing digits, not for names starting with same cha
   const fac = [f('刘英博','物流科',280)];
   const r = matchByName(fac, [c('刘英','杨树海')], mappings);
   assert.strictEqual(r.matched.length, 0);
-  assert.strictEqual(r.needsReview.length, 1);
+  assert.strictEqual(r.needsReview.length, 2);
+  const liuYing = r.needsReview.find(n => String(n.name).trim() === '刘英');
+  assert.strictEqual(liuYing.side, 'factory');
+  const liuYingBo = r.needsReview.find(n => String(n.name).trim() === '刘英博');
+  assert.strictEqual(liuYingBo.side, 'company');
 });

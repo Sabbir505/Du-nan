@@ -15,9 +15,15 @@
         <h1 data-i18n="title">HR工时匹配工具</h1>
         <p class="subtitle" data-i18n="subtitle">上传工厂考勤表与本公司收入表，按姓名自动匹配工时与招聘人。</p>
       </div>
-      <div class="lang-switch" role="group" aria-label="Language">
-        <button type="button" id="lang-zh" class="lang-btn active" data-lang="zh">中文</button>
-        <button type="button" id="lang-en" class="lang-btn" data-lang="en">EN</button>
+      <div class="header-actions">
+        <div class="lang-switch" role="group" aria-label="Language">
+          <button type="button" id="lang-zh" class="lang-btn active" data-lang="zh">中文</button>
+          <button type="button" id="lang-en" class="lang-btn" data-lang="en">EN</button>
+        </div>
+        <div class="lang-switch" role="group" aria-label="Theme">
+          <button type="button" id="theme-light" class="lang-btn" data-theme-btn="light">☀️ <span data-i18n="themeLight">浅色</span></button>
+          <button type="button" id="theme-dark" class="lang-btn" data-theme-btn="dark">🌙 <span data-i18n="themeDark">深色</span></button>
+        </div>
       </div>
     </div>
   </header>
@@ -47,6 +53,7 @@
         <fieldset id="mapping-factory">
           <legend data-i18n="factoryLegend">工厂考勤表</legend>
           <label><span data-i18n="colName">姓名</span> * <select data-side="factory" data-key="name"></select></label>
+          <label><span data-i18n="colFactoryName">工厂名称</span> <select data-side="factory" data-key="factoryName"></select></label>
           <label><span data-i18n="colDept">四级部门</span> <select data-side="factory" data-key="dept"></select></label>
           <label><span data-i18n="colPosition">岗位</span> <select data-side="factory" data-key="position"></select></label>
           <label><span data-i18n="colHours">计薪天数/小时</span> * <select data-side="factory" data-key="hours"></select></label>
@@ -88,6 +95,7 @@
             <tr>
               <th data-i18n="thName">姓名</th>
               <th data-i18n="thRecruiter">招聘人</th>
+              <th data-i18n="thFactory">工厂</th>
               <th data-i18n="thDept">部门</th>
               <th data-i18n="thPosition">岗位</th>
               <th data-i18n="thFactoryHours">工厂工时</th>
@@ -100,11 +108,13 @@
         </table>
       </div>
 
-      <h3 data-i18n="hReview">待处理</h3>
+      <h3 data-i18n="hMissing">缺失名单</h3>
+      <p class="hint" data-i18n="hMissingHint">以下姓名只存在于其中一份文件中 —— 请核对并补全。</p>
       <div class="table-wrap">
         <table id="table-review">
           <thead><tr>
             <th data-i18n="thName">姓名</th>
+            <th data-i18n="thMissingFrom">缺失于</th>
             <th data-i18n="thRecruiter">招聘人</th>
             <th data-i18n="thReason">原因</th>
           </tr></thead>

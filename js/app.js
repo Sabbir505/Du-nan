@@ -19,6 +19,7 @@
       factoryLegend: '工厂考勤表',
       companyLegend: '公司收入表',
       colName: '姓名',
+      colFactoryName: '工厂名称',
       colDept: '四级部门',
       colPosition: '岗位',
       colHours: '计薪天数/小时',
@@ -35,10 +36,14 @@
       fSearchPh: '姓名…',
       fAll: '全部',
       hMatched: '已匹配',
-      hReview: '待处理',
+      hMissing: '缺失名单',
+      hMissingHint: '以下姓名只存在于其中一份文件中 —— 请核对并补全。',
       hSubtotals: '招聘人小计',
+      themeLight: '浅色',
+      themeDark: '深色',
       thName: '姓名',
       thRecruiter: '招聘人',
+      thFactory: '工厂',
       thDept: '部门',
       thPosition: '岗位',
       thFactoryHours: '工厂工时',
@@ -47,25 +52,31 @@
       thStatus: '状态',
       thReason: '原因',
       thSubtotal: '小计金额',
+      thMissingFrom: '缺失于',
       statusMatched: '已匹配',
       statusDuplicate: '重复 — 待处理',
       badgeMatched: '已匹配',
       badgeDuplicate: '重复 — 待处理',
-      badgeUnmatched: '工厂表中未找到',
+      badgeMissingFactory: '工厂表缺失',
+      badgeMissingCompany: '公司表缺失',
+      missingFromFactory: '工厂表',
+      missingFromCompany: '公司表',
       emptyMatched: '当前筛选条件下无匹配结果',
-      emptyReview: '无待处理项 —— 所有人均已匹配',
+      emptyReview: '无缺失项 —— 两份文件名单一致',
       emptySubtotals: '未找到招聘人小计',
       statTotalPeople: '总人数',
       statMatched: '已匹配',
       statDuplicate: '重复 — 待处理',
-      statReview: '待处理',
+      statReview: '缺失名单',
       statTotalHours: '工厂工时合计',
       reasonNotFound: '工厂表中未找到',
+      reasonNotFoundCompany: '公司表中未找到',
       reqMissing: (side, key) => `${side === 'factory' ? '工厂表' : '公司表'}：${key === 'recruiter' ? '招聘人' : '姓名/工时'} 为必填`,
       fileErr: (side, msg) => `${side === 'factory' ? '工厂表' : '公司表'} 文件错误：${msg}`,
       noHeader: '未检测到表头 —— 请确认文件是有效的表格',
       footer: '所有处理均在浏览器本地完成，数据不会上传到任何服务器。',
-      recUnknown: '（未知）'
+      recUnknown: '（未知）',
+      factoryFromFile: (name) => `（文件名：${name}）`
     },
     en: {
       title: 'HR Hours Matching Tool',
@@ -82,6 +93,7 @@
       factoryLegend: 'Factory attendance sheet',
       companyLegend: 'Company income sheet',
       colName: 'Name',
+      colFactoryName: 'Factory name',
       colDept: 'Department',
       colPosition: 'Position',
       colHours: 'Billable days/hours',
@@ -98,10 +110,14 @@
       fSearchPh: 'Name…',
       fAll: 'All',
       hMatched: 'Matched',
-      hReview: 'Needs Review',
+      hMissing: 'Missing Names',
+      hMissingHint: 'These names appear in only one of the two files — please verify and complete.',
       hSubtotals: 'Recruiter Subtotals',
+      themeLight: 'Light',
+      themeDark: 'Dark',
       thName: 'Name',
       thRecruiter: 'Recruiter',
+      thFactory: 'Factory',
       thDept: 'Department',
       thPosition: 'Position',
       thFactoryHours: 'Factory hours',
@@ -110,25 +126,31 @@
       thStatus: 'Status',
       thReason: 'Reason',
       thSubtotal: 'Subtotal Amount',
+      thMissingFrom: 'Missing from',
       statusMatched: 'Matched',
       statusDuplicate: 'Duplicate — review',
       badgeMatched: 'Matched',
       badgeDuplicate: 'Duplicate — review',
-      badgeUnmatched: 'Not found in factory sheet',
+      badgeMissingFactory: 'Missing — factory sheet',
+      badgeMissingCompany: 'Missing — company sheet',
+      missingFromFactory: 'Factory sheet',
+      missingFromCompany: 'Company sheet',
       emptyMatched: 'No matches for the current filters',
-      emptyReview: 'Nothing to review — all people matched',
+      emptyReview: 'Nothing missing — both lists align',
       emptySubtotals: 'No recruiter subtotals found',
       statTotalPeople: 'Total people',
       statMatched: 'Matched',
       statDuplicate: 'Duplicate — review',
-      statReview: 'Needs review',
+      statReview: 'Missing names',
       statTotalHours: 'Total factory hours',
       reasonNotFound: 'Not found in factory sheet',
+      reasonNotFoundCompany: 'Not found in company sheet',
       reqMissing: (side, key) => `${side === 'factory' ? 'Factory' : 'Company'}: ${key === 'recruiter' ? 'Recruiter' : 'Name/Hours'} is required`,
       fileErr: (side, msg) => `${side === 'factory' ? 'Factory' : 'Company'} file error: ${msg}`,
       noHeader: 'No header row detected — is this a valid spreadsheet?',
       footer: 'All processing happens locally in your browser. No data is uploaded anywhere.',
-      recUnknown: '(unknown)'
+      recUnknown: '(unknown)',
+      factoryFromFile: (name) => `(from file: ${name})`
     }
   };
 
@@ -137,6 +159,23 @@
     const v = I18N[lang][key];
     return typeof v === 'function' ? v : (v == null ? key : v);
   };
+
+  // Theme: 'light' | 'dark'. Persisted in localStorage; falls back to the OS
+  // preference on first visit.
+  const THEME_KEY = 'hr-theme';
+  function getInitialTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  let theme = getInitialTheme();
+
+  function applyTheme() {
+    document.documentElement.dataset.theme = theme;
+    $$('[data-theme-btn]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.themeBtn === theme);
+    });
+  }
 
   // ---------------- state ----------------
   const state = {
@@ -148,6 +187,7 @@
   const KEYWORDS = {
     factory: {
       name:     /姓名|^name$/i,
+      factoryName: /工厂|厂名|company|factory/i,
       dept:     /部门|department|dept/i,
       position: /岗位|position/i,
       hours:    /计薪|小时|工时|hours/i,
@@ -436,6 +476,7 @@
         rows.push(`<tr>
           <td>${escapeHtml(m.name)}</td>
           <td>${escapeHtml(m.recruiter)}</td>
+          <td>${escapeHtml(factoryNameFor(fr))}</td>
           <td>${escapeHtml(dept)}</td>
           <td>${escapeHtml(fm.position ? fr[fm.position] : '')}</td>
           <td class="num">${escapeHtml(fm.hours ? fr[fm.hours] : '')}</td>
@@ -446,20 +487,38 @@
       }
     }
     $('#table-matched tbody').innerHTML =
-      rows.join('') || `<tr><td colspan="8" class="empty">${escapeHtml(t('emptyMatched'))}</td></tr>`;
+      rows.join('') || `<tr><td colspan="9" class="empty">${escapeHtml(t('emptyMatched'))}</td></tr>`;
+  }
+
+  // The factory a row belongs to: the mapped 工厂名称 column if present,
+  // otherwise the uploaded factory file's name (without extension).
+  function factoryNameFor(fr) {
+    const fm = state.factory.mappings;
+    if (fm.factoryName && fr[fm.factoryName] != null && String(fr[fm.factoryName]).trim()) {
+      return String(fr[fm.factoryName]).trim();
+    }
+    const fname = state.factory.file ? state.factory.file.name : '';
+    return fname ? fname.replace(/\.[^.]+$/, '') : '';
   }
 
   function renderReview() {
     const rows = state.results.needsReview.map((n) => {
-      const reason = n.reason === 'Not found in factory sheet' ? t('reasonNotFound') : n.reason;
+      // side: 'factory' = name exists in company sheet but not in factory sheet;
+      //        'company' = name exists in factory sheet but not in company sheet.
+      const fromFactory = n.side !== 'company';
+      const badge = fromFactory
+        ? `<span class="badge bad">${escapeHtml(t('badgeMissingFactory'))}</span>`
+        : `<span class="badge warn">${escapeHtml(t('badgeMissingCompany'))}</span>`;
+      const reason = fromFactory ? t('reasonNotFound') : t('reasonNotFoundCompany');
       return `<tr>
         <td>${escapeHtml(n.name)}</td>
+        <td>${badge}</td>
         <td>${escapeHtml(n.recruiter)}</td>
-        <td><span class="badge bad">${escapeHtml(reason)}</span></td>
+        <td>${escapeHtml(reason)}</td>
       </tr>`;
     });
     $('#table-review tbody').innerHTML =
-      rows.join('') || `<tr><td colspan="3" class="empty">${escapeHtml(t('emptyReview'))}</td></tr>`;
+      rows.join('') || `<tr><td colspan="4" class="empty">${escapeHtml(t('emptyReview'))}</td></tr>`;
   }
 
   function renderSubtotals() {
@@ -484,12 +543,22 @@
     });
   });
 
+  // ---------------- theme switch ----------------
+  $$('[data-theme-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      theme = btn.dataset.themeBtn;
+      localStorage.setItem(THEME_KEY, theme);
+      applyTheme();
+    });
+  });
+
   // ---------------- export ----------------
   $('#btn-export').addEventListener('click', () => {
     const { matched, needsReview, subtotals, summary } = state.results;
     const bytes = HrExporter.buildWorkbookBytes({
       matched, needsReview, subtotals, summary,
       mappings: { factory: state.factory.mappings },
+      factoryNameFallback: state.factory.file ? state.factory.file.name.replace(/\.[^.]+$/, '') : '',
       lang
     });
     const blob = new Blob([bytes], {
@@ -508,5 +577,6 @@
   // ---------------- boot ----------------
   setupDropzone('dz-factory', 'factory');
   setupDropzone('dz-company', 'company');
+  applyTheme();
   applyI18n();
 })();

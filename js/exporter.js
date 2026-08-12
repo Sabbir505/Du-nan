@@ -24,35 +24,46 @@
   // (Chinese is the tool's primary language).
   const HDR = {
     zh: {
-      sheetMatched: '已匹配', sheetReview: '待处理', sheetSubtotals: '招聘人小计', sheetSummary: '汇总',
-      name: '姓名', recruiter: '招聘人', dept: '四级部门', position: '岗位',
+      sheetMatched: '已匹配', sheetReview: '缺失名单', sheetSubtotals: '招聘人小计', sheetSummary: '汇总',
+      name: '姓名', recruiter: '招聘人', factory: '工厂', dept: '四级部门', position: '岗位',
       hoursFactory: '计薪天数/小时(工厂)', bonus: '绩效奖金', status: '状态',
-      reason: '原因', subtotal: '小计金额', people: '人数', totalHours: '工时合计',
+      reason: '原因', missingFrom: '缺失于', subtotal: '小计金额', people: '人数', totalHours: '工时合计',
       statusMatched: '已匹配', statusDuplicate: '重复 — 待处理',
-      reasonNotFound: '工厂表中未找到'
+      reasonNotFound: '工厂表中未找到', reasonNotFoundCompany: '公司表中未找到',
+      missingFactorySide: '工厂表', missingCompanySide: '公司表'
     },
     en: {
-      sheetMatched: 'Matched', sheetReview: 'Needs Review', sheetSubtotals: 'Subtotals', sheetSummary: 'Summary',
-      name: 'Name', recruiter: 'Recruiter', dept: 'Department', position: 'Position',
+      sheetMatched: 'Matched', sheetReview: 'Missing Names', sheetSubtotals: 'Subtotals', sheetSummary: 'Summary',
+      name: 'Name', recruiter: 'Recruiter', factory: 'Factory', dept: 'Department', position: 'Position',
       hoursFactory: 'Billable days/hours (factory)', bonus: 'Bonus', status: 'Status',
-      reason: 'Reason', subtotal: 'Subtotal Amount', people: 'People', totalHours: 'Total Hours',
+      reason: 'Reason', missingFrom: 'Missing from', subtotal: 'Subtotal Amount', people: 'People', totalHours: 'Total Hours',
       statusMatched: 'Matched', statusDuplicate: 'Duplicate — review',
-      reasonNotFound: 'Not found in factory sheet'
+      reasonNotFound: 'Not found in factory sheet', reasonNotFoundCompany: 'Not found in company sheet',
+      missingFactorySide: 'Factory sheet', missingCompanySide: 'Company sheet'
     }
   };
 
   function hdr(lang, key) { return HDR[lang || 'zh'][key]; }
 
   // matched items: { name, recruiter, company, matchedFactoryRows, status }
-  // mappings.factory holds the column keys for dept/position/hours/bonus.
-  function matchedToRows(matched, mappings, lang) {
+  // mappings.factory holds the column keys for factoryName/dept/position/hours/bonus.
+  // factoryNameFallback is used when the sheet has no factory-name column
+  // (e.g. the uploaded file's name without its extension).
+  function matchedToRows(matched, mappings, lang, factoryNameFallback) {
     const rows = [];
-    const { dept, position, hours, bonus } = mappings.factory;
+    const { factoryName, dept, position, hours, bonus } = mappings.factory;
     for (const m of matched) {
       for (const f of m.matchedFactoryRows) {
+        let fac = '';
+        if (factoryName && f[factoryName] != null && String(f[factoryName]).trim()) {
+          fac = String(f[factoryName]).trim();
+        } else if (factoryNameFallback) {
+          fac = factoryNameFallback;
+        }
         rows.push({
           [hdr(lang, 'name')]: cell(m.name),
           [hdr(lang, 'recruiter')]: cell(m.recruiter),
+          [hdr(lang, 'factory')]: cell(fac),
           [hdr(lang, 'dept')]: cell(dept ? f[dept] : ''),
           [hdr(lang, 'position')]: cell(position ? f[position] : ''),
           [hdr(lang, 'hoursFactory')]: cell(hours ? f[hours] : ''),
@@ -65,11 +76,15 @@
   }
 
   function needsReviewToRows(needsReview, lang) {
-    return needsReview.map(n => ({
-      [hdr(lang, 'name')]: cell(n.name),
-      [hdr(lang, 'recruiter')]: cell(n.recruiter),
-      [hdr(lang, 'reason')]: n.reason === 'Not found in factory sheet' ? hdr(lang, 'reasonNotFound') : cell(n.reason)
-    }));
+    return needsReview.map(n => {
+      const fromFactory = n.side !== 'company';
+      return {
+        [hdr(lang, 'name')]: cell(n.name),
+        [hdr(lang, 'missingFrom')]: fromFactory ? hdr(lang, 'missingFactorySide') : hdr(lang, 'missingCompanySide'),
+        [hdr(lang, 'recruiter')]: cell(n.recruiter),
+        [hdr(lang, 'reason')]: fromFactory ? hdr(lang, 'reasonNotFound') : hdr(lang, 'reasonNotFoundCompany')
+      };
+    });
   }
 
   function subtotalsToRows(subtotals, lang) {
@@ -87,9 +102,9 @@
     }));
   }
 
-  function buildWorkbookBytes({ matched, needsReview, subtotals, summary, mappings, lang }) {
+  function buildWorkbookBytes({ matched, needsReview, subtotals, summary, mappings, factoryNameFallback, lang }) {
     const wb = XLSXLib.utils.book_new();
-    XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(matchedToRows(matched, mappings, lang)), hdr(lang, 'sheetMatched'));
+    XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(matchedToRows(matched, mappings, lang, factoryNameFallback)), hdr(lang, 'sheetMatched'));
     XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(needsReviewToRows(needsReview, lang)), hdr(lang, 'sheetReview'));
     XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(subtotalsToRows(subtotals, lang)), hdr(lang, 'sheetSubtotals'));
     XLSXLib.utils.book_append_sheet(wb, XLSXLib.utils.json_to_sheet(summaryToRows(summary, lang)), hdr(lang, 'sheetSummary'));

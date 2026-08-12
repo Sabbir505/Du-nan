@@ -77,7 +77,15 @@ test('full pipeline against real samples produces valid workbook', { skip: !samp
   // so people who left/joined between months are legitimately unmatched —
   // the tool must surface them in Needs Review rather than guess.
   assert.strictEqual(matched.length, 30, 'expected 30 matched from the sample pair');
-  assert.strictEqual(needsReview.length, 16, 'expected 16 unmatched (month turnover)');
+  assert.strictEqual(needsReview.length, 54, 'expected 54 unmatched (month turnover)');
+
+  // Bidirectional missing detection: 16 company names missing from the factory
+  // sheet; 38 factory names missing from the company sheet (70 factory people
+  // minus the 32 factory rows consumed by the 30 matches).
+  const factorySide = needsReview.filter(n => n.side === 'factory');
+  const companySide = needsReview.filter(n => n.side === 'company');
+  assert.strictEqual(factorySide.length, 16, '16 names missing from the factory sheet');
+  assert.strictEqual(companySide.length, 38, '38 names missing from the company sheet');
 
   // Confirm the known duplicate surfaced: 黄亚丽 has 黄亚丽1 + 黄亚丽2 in factory
   const huang = matched.find(m => String(m.name).trim() === '黄亚丽');
