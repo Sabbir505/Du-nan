@@ -3,56 +3,65 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HR Hours Matching Tool</title>
+  <title data-i18n="title">HR工时匹配工具 · HR Hours Matching Tool</title>
+  <meta name="description" content="Merge factory attendance with company recruitment data locally in your browser." />
   <link rel="stylesheet" href="css/styles.css" />
   <script src="vendor/xlsx.full.min.js"></script>
 </head>
 <body>
   <header>
-    <h1>HR Hours Matching Tool</h1>
-    <p class="subtitle">Upload the factory attendance sheet and your company income sheet to merge people by name.</p>
+    <div class="header-row">
+      <div>
+        <h1 data-i18n="title">HR工时匹配工具</h1>
+        <p class="subtitle" data-i18n="subtitle">上传工厂考勤表与本公司收入表，按姓名自动匹配工时与招聘人。</p>
+      </div>
+      <div class="lang-switch" role="group" aria-label="Language">
+        <button type="button" id="lang-zh" class="lang-btn active" data-lang="zh">中文</button>
+        <button type="button" id="lang-en" class="lang-btn" data-lang="en">EN</button>
+      </div>
+    </div>
   </header>
 
   <main>
     <section class="uploads">
       <div class="dropzone" id="dz-factory" data-side="factory" tabindex="0">
-        <h2>1. Factory attendance sheet</h2>
-        <p class="hint">.xls · .xlsx · .csv</p>
+        <h2 data-i18n="dzFactoryTitle">1. 工厂考勤表</h2>
+        <p class="hint" data-i18n="dzHint">.xls · .xlsx · .csv</p>
         <input type="file" id="file-factory" accept=".xls,.xlsx,.csv" hidden />
-        <p class="dz-status">Drag file here or click to browse</p>
+        <p class="dz-status" data-i18n="dzIdle">拖拽文件到此处，或点击选择</p>
         <p class="dz-file" hidden></p>
       </div>
       <div class="dropzone" id="dz-company" data-side="company" tabindex="0">
-        <h2>2. Company income sheet</h2>
-        <p class="hint">.xls · .xlsx · .csv</p>
+        <h2 data-i18n="dzCompanyTitle">2. 公司收入表</h2>
+        <p class="hint" data-i18n="dzHint">.xls · .xlsx · .csv</p>
         <input type="file" id="file-company" accept=".xls,.xlsx,.csv" hidden />
-        <p class="dz-status">Drag file here or click to browse</p>
+        <p class="dz-status" data-i18n="dzIdle">拖拽文件到此处，或点击选择</p>
         <p class="dz-file" hidden></p>
       </div>
     </section>
 
     <section class="mappings" id="mappings" hidden>
-      <h2>Column mapping</h2>
-      <p class="hint">Columns were auto-detected. Confirm or change each dropdown — required columns are marked *.</p>
+      <h2 data-i18n="mappingTitle">列映射</h2>
+      <p class="hint" data-i18n="mappingHint">已自动识别列。请确认或修改下拉选择 —— 带 * 的为必填列。</p>
       <div class="mapping-grid">
         <fieldset id="mapping-factory">
-          <legend>Factory attendance sheet</legend>
-          <label>姓名 (Name) * <select data-side="factory" data-key="name"></select></label>
-          <label>四级部门 (Department) <select data-side="factory" data-key="dept"></select></label>
-          <label>岗位 (Position) <select data-side="factory" data-key="position"></select></label>
-          <label>计薪天数/小时 (Hours) * <select data-side="factory" data-key="hours"></select></label>
-          <label>绩效奖金 (Bonus) <select data-side="factory" data-key="bonus"></select></label>
+          <legend data-i18n="factoryLegend">工厂考勤表</legend>
+          <label><span data-i18n="colName">姓名</span> * <select data-side="factory" data-key="name"></select></label>
+          <label><span data-i18n="colDept">四级部门</span> <select data-side="factory" data-key="dept"></select></label>
+          <label><span data-i18n="colPosition">岗位</span> <select data-side="factory" data-key="position"></select></label>
+          <label><span data-i18n="colHours">计薪天数/小时</span> * <select data-side="factory" data-key="hours"></select></label>
+          <label><span data-i18n="colBonus">绩效奖金</span> <select data-side="factory" data-key="bonus"></select></label>
         </fieldset>
         <fieldset id="mapping-company">
-          <legend>Company income sheet</legend>
-          <label>姓名 (Name) * <select data-side="company" data-key="name"></select></label>
-          <label>招聘人 (Recruiter) * <select data-side="company" data-key="recruiter"></select></label>
-          <label>岗位 (Position) <select data-side="company" data-key="position"></select></label>
-          <label>计薪天数/小时 (Hours) <select data-side="company" data-key="hours"></select></label>
+          <legend data-i18n="companyLegend">公司收入表</legend>
+          <label><span data-i18n="colName">姓名</span> * <select data-side="company" data-key="name"></select></label>
+          <label><span data-i18n="colRecruiter">招聘人</span> * <select data-side="company" data-key="recruiter"></select></label>
+          <label><span data-i18n="colPosition">岗位</span> <select data-side="company" data-key="position"></select></label>
+          <label><span data-i18n="colHours">计薪天数/小时</span> <select data-side="company" data-key="hours"></select></label>
         </fieldset>
       </div>
       <div class="actions">
-        <button id="btn-match" disabled>Match &amp; View</button>
+        <button id="btn-match" disabled data-i18n="btnMatch">匹配并查看</button>
         <p class="error" id="mapping-error" hidden></p>
       </div>
     </section>
@@ -61,38 +70,55 @@
       <div class="summary" id="summary"></div>
 
       <div class="filters">
-        <label>Department <select id="filter-dept"><option value="">All</option></select></label>
-        <label>Recruiter <select id="filter-rec"><option value="">All</option></select></label>
-        <label>Status <select id="filter-status"><option value="">All</option><option>Matched</option><option>Duplicate — review</option></select></label>
-        <label class="search">Search <input id="filter-name" type="search" placeholder="Name…" /></label>
-        <button id="btn-export">Export .xlsx</button>
+        <label><span data-i18n="fDept">部门</span>
+          <select id="filter-dept"><option value="">All</option></select></label>
+        <label><span data-i18n="fRecruiter">招聘人</span>
+          <select id="filter-rec"><option value="">All</option></select></label>
+        <label><span data-i18n="fStatus">状态</span>
+          <select id="filter-status"><option value="">All</option><option data-i18n="statusMatched">已匹配</option><option data-i18n="statusDuplicate">重复 — 待处理</option></select></label>
+        <label class="search"><span data-i18n="fSearch">搜索</span>
+          <input id="filter-name" type="search" data-i18n-ph="fSearchPh" placeholder="姓名…" /></label>
+        <button id="btn-export" data-i18n="btnExport">导出 .xlsx</button>
       </div>
 
-      <h3>Matched</h3>
+      <h3 data-i18n="hMatched">已匹配</h3>
       <div class="table-wrap">
         <table id="table-matched">
           <thead>
             <tr>
-              <th>姓名</th><th>招聘人</th><th>部门</th><th>岗位</th>
-              <th>工厂工时</th><th>绩效奖金</th><th>公司工时</th><th>Status</th>
+              <th data-i18n="thName">姓名</th>
+              <th data-i18n="thRecruiter">招聘人</th>
+              <th data-i18n="thDept">部门</th>
+              <th data-i18n="thPosition">岗位</th>
+              <th data-i18n="thFactoryHours">工厂工时</th>
+              <th data-i18n="thBonus">绩效奖金</th>
+              <th data-i18n="thCompanyHours">公司工时</th>
+              <th data-i18n="thStatus">状态</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
 
-      <h3>Needs Review</h3>
+      <h3 data-i18n="hReview">待处理</h3>
       <div class="table-wrap">
         <table id="table-review">
-          <thead><tr><th>姓名</th><th>招聘人</th><th>Reason</th></tr></thead>
+          <thead><tr>
+            <th data-i18n="thName">姓名</th>
+            <th data-i18n="thRecruiter">招聘人</th>
+            <th data-i18n="thReason">原因</th>
+          </tr></thead>
           <tbody></tbody>
         </table>
       </div>
 
-      <h3>Recruiter Subtotals</h3>
+      <h3 data-i18n="hSubtotals">招聘人小计</h3>
       <div class="table-wrap">
         <table id="table-subtotals">
-          <thead><tr><th>招聘人</th><th>Subtotal Amount</th></tr></thead>
+          <thead><tr>
+            <th data-i18n="thRecruiter">招聘人</th>
+            <th data-i18n="thSubtotal">小计金额</th>
+          </tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -100,7 +126,7 @@
   </main>
 
   <footer>
-    <p>All processing happens locally in your browser. No data is uploaded anywhere.</p>
+    <p data-i18n="footer">所有处理均在浏览器本地完成，数据不会上传到任何服务器。</p>
   </footer>
 
   <script src="js/parser.js"></script>
