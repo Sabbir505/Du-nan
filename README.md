@@ -40,7 +40,7 @@ Unit + integration tests run with Node's built-in test runner (no dependencies t
 npm test
 ```
 
-The integration test runs the full pipeline (parse → classify → match → summarize → export) against the two sample files included in the repo.
+The unit tests always run. The end-to-end integration test runs against the two real sample spreadsheets when they are present locally (`sample_factory.xls` / `sample_factory_attendance.xlsx`). Those samples contain real employee data and are deliberately **not** committed to the repo; the integration test skips cleanly when they're absent, so a fresh clone still passes.
 
 ## Privacy
 
