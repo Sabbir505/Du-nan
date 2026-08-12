@@ -1,0 +1,13 @@
+# Netlify deployment config — static site, no build step.
+# Publish the repo root directly; index.html is the entry point.
+
+[build]
+  publish = "."
+
+# Security headers (optional but recommended for an HR tool)
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
