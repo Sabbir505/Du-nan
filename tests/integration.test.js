@@ -12,6 +12,8 @@ const { buildWorkbookBytes } = require('../js/exporter.js');
 const FAC_XLSX = path.join(__dirname, '..', 'sample_factory_attendance.xlsx');
 const CO_XLS   = path.join(__dirname, '..', 'sample_factory.xls');
 
+const samplesPresent = fs.existsSync(FAC_XLSX) && fs.existsSync(CO_XLS);
+
 const findCol = (headers, re) => headers.findIndex(h => re.test(h));
 
 function pickSubtotalAmount(row) {
@@ -19,7 +21,10 @@ function pickSubtotalAmount(row) {
   return vals.length ? Math.max(...vals) : 0;
 }
 
-test('full pipeline against real samples produces valid workbook', () => {
+// The sample spreadsheets contain real HR data and are intentionally NOT
+// committed to the repo. When they're absent (e.g. a fresh clone), the
+// pipeline is still exercised by the unit tests — skip cleanly here.
+test('full pipeline against real samples produces valid workbook', { skip: !samplesPresent }, () => {
   // 1) Parse both files
   const fac = parseWorkbook(new Uint8Array(fs.readFileSync(FAC_XLSX)));
   const co  = parseWorkbook(new Uint8Array(fs.readFileSync(CO_XLS)));
