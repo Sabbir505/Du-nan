@@ -186,16 +186,17 @@
 
   const KEYWORDS = {
     factory: {
-      name:     /姓名|^name$/i,
+      name:     /姓名|人名|名字|员工|^name$/i,
       factoryName: /工厂|厂名|company|factory/i,
       dept:     /部门|department|dept/i,
-      position: /岗位|position/i,
+      position: /岗位|职位|position/i,
       hours:    /计薪|小时|工时|hours/i,
       bonus:    /绩效|奖金|bonus/i
     },
     company: {
-      name:     /姓名|^name$/i,
-      position: /岗位|position/i,
+      name:     /姓名|人名|名字|员工|^name$/i,
+      recruiter: /招|推荐|recruit|refer/i,
+      position: /岗位|职位|position/i,
       hours:    /计薪|小时|工时|hours/i
     }
   };
@@ -303,7 +304,10 @@
     }
     if (side === 'company' && !out.recruiter) {
       const coNameKey = out.name;
-      const rec = HrParser.detectRecruiterColumn(parsed.keys, parsed.rows, coNameKey);
+      // Exclude columns already claimed by other fields so the headerless
+      // fallback doesn't pick the name/position/hours column by mistake.
+      const claimed = Object.values(out).filter(Boolean);
+      const rec = HrParser.detectRecruiterColumn(parsed.keys, parsed.rows, coNameKey, claimed);
       if (rec) out.recruiter = rec;
     }
     return out;
@@ -339,6 +343,7 @@
       errEl.hidden = false;
       btn.disabled = true;
     } else {
+      errEl.textContent = '';
       errEl.hidden = true;
       btn.disabled = false;
     }
@@ -346,6 +351,16 @@
 
   // ---------------- matching ----------------
   $('#btn-match').addEventListener('click', runMatch);
+
+  // When the user changes any mapping dropdown, sync the value into state and
+  // re-validate immediately so a manual fix re-enables the Match button
+  // without needing a page reload.
+  $$('select[data-side]').forEach((sel) => {
+    sel.addEventListener('change', () => {
+      state[sel.dataset.side].mappings[sel.dataset.key] = sel.value;
+      validateMappings();
+    });
+  });
 
   function runMatch() {
     $$('select[data-side]').forEach((sel) => {

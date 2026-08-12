@@ -61,27 +61,28 @@
     return { personRows, subtotalRows };
   }
 
-  // Detect a headerless recruiter column: the column whose cell is a short
-  // non-numeric string on rows where the name column is empty (the subtotal
-  // rows), and which is not the name column itself. Returns the column key,
-  // or '' if no plausible candidate is found.
-  function detectRecruiterColumn(keys, rows, nameKey) {
-    let bestIdx = -1, bestScore = -1;
+  // Detect a headerless recruiter column: the column whose cells are short
+  // non-numeric strings, either on rows where the name column is empty
+  // (subtotal rows — strong signal, weight 2) or on person rows (weight 1).
+  // Columns already auto-mapped to other fields are excluded. Returns the
+  // column key, or '' if no plausible candidate is found.
+  function detectRecruiterColumn(keys, rows, nameKey, excludeKeys) {
+    const excluded = new Set(excludeKeys || []);
+    let bestIdx = -1, bestScore = 0;
     keys.forEach((k, i) => {
-      if (k === nameKey) return;
+      if (k === nameKey || excluded.has(k)) return;
       let score = 0;
       for (const r of rows) {
         const nm = (r[nameKey] == null ? '' : String(r[nameKey])).trim();
-        if (nm) continue;
         const v = r[k];
-        if (v != null) {
-          const s = String(v).trim();
-          if (s.length > 0 && s.length <= 8 && isNaN(Number(s))) score++;
-        }
+        if (v == null) continue;
+        const s = String(v).trim();
+        if (s.length === 0 || s.length > 8 || !isNaN(Number(s))) continue;
+        score += nm ? 1 : 2; // subtotal rows (name empty) weigh double
       }
       if (score > bestScore) { bestScore = score; bestIdx = i; }
     });
-    return bestIdx >= 0 && bestScore > 0 ? keys[bestIdx] : '';
+    return bestIdx >= 0 ? keys[bestIdx] : '';
   }
 
   if (typeof module !== 'undefined' && module.exports) {
